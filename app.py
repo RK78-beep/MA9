@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pickle
-from utils.helpers import parse_pdf, parse_excel, parse_csv, recommend_deal, generate_gpt_commentary
+from helpers import parse_pdf, parse_excel, parse_csv, recommend_deal, generate_gpt_commentary
 
 st.title("📊 M&A Deal Analyzer+")
 uploaded_file = st.file_uploader("Upload a CSV, Excel, or PDF file", type=["csv", "xlsx", "xls", "pdf"])
