@@ -1,3 +1,13 @@
-# M&A Deal Analyzer+
+# M&A Deal Predictor App
 
-Upload financial documents to get AI-driven deal recommendations, visualizations, and analysis.
+Upload CSV, Excel, or PDF files for two companies and get:
+- M&A success score
+- GPT-style recommendations
+- SHAP explainability plots
+- PDF report download
+
+## Run Locally
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
