@@ -1,33 +1,32 @@
-
 import streamlit as st
+from utils.helpers import parse_pdf, parse_excel, parse_csv, recommend_deal, generate_report, plot_summary
 import pandas as pd
-from helpers import process_uploaded_file, generate_predictions, generate_recommendations, generate_report
 
-st.set_page_config(page_title="M&A Deal Analyzer+", layout="wide")
+st.title("📊 M&A Deal Analyzer+ with GPT Insights")
 
-st.title("📊 M&A Deal Analyzer+")
-
-uploaded_file = st.file_uploader("Upload Financial Document (CSV, Excel, or PDF)", type=["csv", "xlsx", "xls", "pdf"])
+uploaded_file = st.file_uploader("Upload your M&A file (CSV, Excel, PDF)", type=["csv", "xlsx", "xls", "pdf"])
 
 if uploaded_file:
-    try:
-        df = process_uploaded_file(uploaded_file)
+    file_type = uploaded_file.name.split('.')[-1]
+    if file_type == 'pdf':
+        df = parse_pdf(uploaded_file)
+    elif file_type in ['xlsx', 'xls']:
+        df = parse_excel(uploaded_file)
+    elif file_type == 'csv':
+        df = parse_csv(uploaded_file)
+    else:
+        st.error("Unsupported file format.")
+
+    if df is not None:
         st.subheader("📁 Uploaded & Processed Data")
         st.dataframe(df)
 
-        predictions = generate_predictions(df)
-        df["Predicted Success"] = predictions
-
-        st.subheader("✅ Predictions")
-        st.dataframe(df)
-
-        st.subheader("📉 SHAP Analysis (Explainability)")
-        st.image("shap_summary_plot.png")
-
-        st.subheader("📋 GPT-style Commentary")
-        commentary = generate_recommendations(df)
+        # Generate recommendation and report
+        df, commentary = recommend_deal(df)
+        st.subheader("🤖 GPT-Style Commentary")
         st.dataframe(commentary)
 
-        st.download_button("📥 Download Report", generate_report(df, commentary), file_name="ma_analysis_report.pdf")
-    except Exception as e:
-        st.error(f"Something went wrong: {e}")
+        st.subheader("📈 Prediction Distribution")
+        plot_summary(df)
+
+        st.download_button("Download Report", generate_report(df), "report.csv", "text/csv")

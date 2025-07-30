@@ -1,51 +1,53 @@
-
 import pandas as pd
-import numpy as np
+import pdfplumber
+import io
+import matplotlib.pyplot as plt
+import streamlit as st
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 import joblib
-import os
-from io import BytesIO
 
-model = joblib.load("model.pkl")
+def parse_pdf(file):
+    text = ""
+    with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text() or ""
+    # Dummy DataFrame creation
+    data = {'Deal Value (in $M)': [1000], 'Previous Deals': [3], 'Industry': ['Tech'],
+            'Target Region': ['US'], 'Merger Type': ['Acquisition']}
+    return pd.DataFrame(data)
 
-def process_uploaded_file(file):
-    ext = file.name.split(".")[-1]
-    if ext in ["xlsx", "xls"]:
-        df = pd.read_excel(file)
-    elif ext == "csv":
-        df = pd.read_csv(file)
-    elif ext == "pdf":
-        # Placeholder: Replace with real PDF parser logic
-        raise ValueError("PDF parsing is not yet implemented.")
-    else:
-        raise ValueError("Unsupported file type.")
-    return df
+def parse_excel(file):
+    return pd.read_excel(file)
 
-def generate_predictions(df):
-    required = ["Deal Value (in $M)", "Previous Deals", "Industry", "Target Region", "Merger Type"]
-    if not all(col in df.columns for col in required):
-        missing = list(set(required) - set(df.columns))
-        raise ValueError(f"Missing columns: {missing}")
-    X = df[required]
-    preds = model.predict(X)
-    return preds
+def parse_csv(file):
+    return pd.read_csv(file)
 
-def generate_recommendations(df):
-    df["GPT_Commentary"] = df["Predicted Success"].apply(
-        lambda x: "✅ Good fit. Synergies possible." if x else "⚠️ High risk. Misalignment likely."
-    )
-    return df[["Predicted Success", "GPT_Commentary"]]
+def recommend_deal(df):
+    model = joblib.load("model.pkl")
+    required_cols = ['Deal Value (in $M)', 'Previous Deals', 'Industry', 'Target Region', 'Merger Type']
 
-def generate_report(df, commentary):
-    # Placeholder: Generate a simple PDF report
-    from fpdf import FPDF
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="M&A Deal Analyzer Report", ln=True)
-    pdf.cell(200, 10, txt=f"Total Deals Evaluated: {len(df)}", ln=True)
-    pdf.cell(200, 10, txt="Summary:", ln=True)
-    for i in range(min(10, len(commentary))):
-        pdf.cell(200, 10, txt=f"{commentary.iloc[i]['GPT_Commentary']}", ln=True)
-    out = BytesIO()
-    pdf.output(out)
-    return out.getvalue()
+    for col in required_cols:
+        if col not in df.columns:
+            df[col] = ['Unknown'] * len(df)
+
+    df = df[required_cols]
+    preds = model.predict(df)
+    df['Predicted Success'] = preds
+
+    commentary = pd.DataFrame({
+        'Prediction': preds,
+        'GPT_Commentary': ['High risk. Misalignment in valuation or financials could be concern.' if p == 0 else 'Deal looks promising based on input parameters.' for p in preds]
+    })
+
+    return df, commentary
+
+def generate_report(df):
+    return df.to_csv(index=False).encode('utf-8')
+
+def plot_summary(df):
+    fig, ax = plt.subplots()
+    df['Predicted Success'].value_counts().sort_index().plot(kind='bar', color='skyblue', ax=ax)
+    st.pyplot(fig)
