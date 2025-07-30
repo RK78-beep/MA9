@@ -1,11 +1,7 @@
 streamlit
 pandas
-scikit-learn
-matplotlib
 numpy
-PyMuPDF==1.22.3
-openpyxl
+joblib
 shap
-plotly
-fpdf
-openai
+matplotlib
+scikit-learn
