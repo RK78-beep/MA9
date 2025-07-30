@@ -1,44 +1,40 @@
+
 import streamlit as st
-from helpers import parse_pdf, parse_excel, parse_csv, recommend_deal
 import pandas as pd
-import shap
-import matplotlib.pyplot as plt
-import joblib
+from helpers import parse_csv, parse_excel, parse_pdf, recommend_deal, generate_charts, explain_with_shap
 
 st.set_page_config(page_title="M&A Deal Analyzer+", layout="wide")
+st.title("🤖 M&A Deal Analyzer with AI Insights")
 
-st.title("🤖 M&A Deal Analyzer+")
-
-uploaded_file = st.file_uploader("Upload your M&A deal file (PDF, Excel, or CSV)", type=["pdf", "xlsx", "xls", "csv"])
-
+uploaded_file = st.file_uploader("Upload your deal data file (CSV, Excel, or PDF)", type=["csv", "xlsx", "xls", "pdf"])
 if uploaded_file:
-    if uploaded_file.name.endswith(".pdf"):
-        df = parse_pdf(uploaded_file)
-    elif uploaded_file.name.endswith((".xlsx", ".xls")):
-        df = parse_excel(uploaded_file)
-    else:
+    if uploaded_file.name.endswith(".csv"):
         df = parse_csv(uploaded_file)
+    elif uploaded_file.name.endswith((".xls", ".xlsx")):
+        df = parse_excel(uploaded_file)
+    elif uploaded_file.name.endswith(".pdf"):
+        df = parse_pdf(uploaded_file)
+    else:
+        st.error("Unsupported file format.")
+        st.stop()
 
-    st.subheader("📊 Uploaded & Processed Data")
-    st.dataframe(df)
+    if df is not None:
+        st.subheader("📊 Uploaded & Processed Data")
+        st.dataframe(df)
 
-    model = joblib.load("model.pkl")
-    prediction = model.predict(df)
-    prediction_proba = model.predict_proba(df)[:, 1]
+        try:
+            score, alt, recommendation = recommend_deal(df)
+            st.success(f"✅ Success Probability: {score:.2f}")
+            st.markdown(f"**💡 GPT-Style Recommendation:** {recommendation}")
+            if score < 0.5:
+                st.warning(f"🚧 Suggested Alternatives: {alt}")
 
-    df["Success Probability"] = prediction_proba
-    df["Prediction"] = prediction
+            st.subheader("📈 Visual Insights")
+            generate_charts(df)
 
-    st.subheader("✅ Prediction Results")
-    st.dataframe(df[["Success Probability", "Prediction"]])
-
-    st.subheader("📈 SHAP Explainability")
-    explainer = shap.Explainer(model)
-    shap_values = explainer(df)
-    st.set_option('deprecation.showPyplotGlobalUse', False)
-    shap.summary_plot(shap_values, df, show=False)
-    st.pyplot(bbox_inches='tight')
-
-    st.subheader("🧠 GPT-style Recommendation")
-    for i, row in df.iterrows():
-        st.markdown(f"**Deal {i+1}:** {recommend_deal(row)}")
+            st.subheader("🧠 SHAP Explainability")
+            explain_with_shap(df)
+        except Exception as e:
+            st.error(f"Prediction failed: {e}")
+    else:
+        st.warning("No valid data extracted.")
