@@ -1,7 +1,7 @@
 
 import streamlit as st
 import pandas as pd
-from utils.helpers import handle_file_upload, run_model_analysis
+from helpers import handle_file_upload, run_model_analysis
 
 st.set_page_config(page_title="M&A Deal Analyzer+", layout="wide")
 
