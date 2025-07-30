@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.helpers import parse_pdf, parse_excel, parse_csv, recommend_deal, generate_report, plot_summary
+from helpers import parse_pdf, parse_excel, parse_csv, recommend_deal, generate_report, plot_summary
 import pandas as pd
 
 st.title("📊 M&A Deal Analyzer+ with GPT Insights")
